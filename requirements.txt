@@ -1,0 +1,7 @@
+streamlit
+requests
+pandas
+python-dotenv
+opencv-python
+pytesseract
+idanalyzer
