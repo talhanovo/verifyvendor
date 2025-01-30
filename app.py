@@ -5,7 +5,7 @@ import json
 import os
 
 # Configuration
-API_KEY = "Zz2yjmXLdKrebG74iYh4HqbsQVl2lRcJ"  # Replace with your IDAnalyzer API Key
+API_KEY = st.secrets["API"]["ID_ANALYZER_API_KEY"]  # Replace with your IDAnalyzer API Key
 PROFILE_ID = "995c339381194eeda07037022310b30f"  # Profile ID for verification
 API_URL = "https://api2.idanalyzer.com/scan"
 
