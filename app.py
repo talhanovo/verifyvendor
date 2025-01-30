@@ -65,14 +65,12 @@ st.subheader("🔍 Enter VIN Numbers")
 for i, vin in enumerate(st.session_state.vin_list):
     col1, col2 = st.columns([0.8, 0.2])
     st.session_state.vin_list[i] = col1.text_input(f"VIN {i+1}:", value=vin, key=f"vin_{i}")
-    if col2.button("❌", key=f"remove_vin_{i}"):
+    if col2.button("❌", key=f"remove_vin_{i}") and len(st.session_state.vin_list) > 1:
         st.session_state.vin_list.pop(i)
         st.experimental_rerun()
 
-# Add VIN Button
-if st.button("➕ Add VIN"):
-    st.session_state.vin_list.append("")
-    st.experimental_rerun()
+# Add VIN Button (Disabled if last VIN field is empty)
+st.button("➕ Add VIN", disabled=not st.session_state.vin_list[-1], key="add_vin", on_click=lambda: st.session_state.vin_list.append(""))
 
 # Section for Driver’s License Upload
 st.subheader("🆔 Upload Driver’s Licenses")
@@ -81,14 +79,12 @@ st.subheader("🆔 Upload Driver’s Licenses")
 for i, license_file in enumerate(st.session_state.license_list):
     col1, col2 = st.columns([0.8, 0.2])
     st.session_state.license_list[i] = col1.file_uploader(f"License {i+1}:", type=["jpg", "png"], key=f"license_{i}")
-    if col2.button("❌", key=f"remove_license_{i}"):
+    if col2.button("❌", key=f"remove_license_{i}") and len(st.session_state.license_list) > 1:
         st.session_state.license_list.pop(i)
         st.experimental_rerun()
 
-# Add License Button
-if st.button("➕ Add License"):
-    st.session_state.license_list.append(None)
-    st.experimental_rerun()
+# Add License Button (Disabled if last license field is empty)
+st.button("➕ Add License", disabled=not st.session_state.license_list[-1], key="add_license", on_click=lambda: st.session_state.license_list.append(None))
 
 # Verify Button
 if st.button("Verify Details"):
