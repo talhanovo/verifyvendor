@@ -55,11 +55,11 @@ def verify_license(image_data):
         return {"error": str(e)}
 
 # Streamlit UI
-st.title("🚗 Auto VIN & Driver's License Verification 🆔")
+st.title("🚗 Vendor Verification form")
 st.write("Enter **one or more VIN numbers** and upload **one or more driver's licenses** to verify details.")
 
 # Section for VIN numbers
-st.subheader("🔍 Enter VIN Numbers")
+st.subheader("🔍 Enter VIN Numbers of your Fleet")
 
 # Display VIN input fields dynamically
 for i, vin in enumerate(st.session_state.vin_list):
@@ -87,7 +87,7 @@ for i, license_file in enumerate(st.session_state.license_list):
 st.button("➕ Add License", disabled=not st.session_state.license_list[-1], key="add_license", on_click=lambda: st.session_state.license_list.append(None))
 
 # Verify Button
-if st.button("Verify Details"):
+if st.button("Submit"):
     if not any(st.session_state.vin_list) and not any(st.session_state.license_list):
         st.error("⚠️ Please enter **at least one VIN number** or **upload at least one driver's license**.")
     
