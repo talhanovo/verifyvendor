@@ -3,10 +3,11 @@ import requests
 import base64
 import json
 import os
+import pandas as pd
 
-# Configuration
-API_KEY = st.secrets["API"]["ID_ANALYZER_API_KEY"]  # Replace with your IDAnalyzer API Key
-PROFILE_ID = "995c339381194eeda07037022310b30f"  # Profile ID for verification
+# Load API Keys from Streamlit Secrets
+ID_ANALYZER_API_KEY = st.secrets["API"]["ID_ANALYZER_API_KEY"]
+PROFILE_ID = "995c339381194eeda07037022310b30f"  # Profile ID for ID Analyzer
 API_URL = "https://api2.idanalyzer.com/scan"
 
 # Function to fetch VIN details
@@ -14,7 +15,7 @@ def verify_vin(vin):
     """Fetch VIN details from NHTSA API"""
     api_url = f"https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/{vin}?format=json"
     response = requests.get(api_url)
-    
+
     if response.status_code == 200:
         data = response.json().get("Results", [])
         vehicle_info = {
@@ -39,9 +40,9 @@ def verify_license(image_path):
     try:
         document_base64 = encode_image(image_path)
         payload = {"profile": PROFILE_ID, "document": document_base64}
-        headers = {"X-API-KEY": API_KEY, "Accept": "application/json", "Content-Type": "application/json"}
+        headers = {"X-API-KEY": ID_ANALYZER_API_KEY, "Accept": "application/json", "Content-Type": "application/json"}
         response = requests.post(API_URL, headers=headers, data=json.dumps(payload))
-        
+
         if response.status_code == 200:
             return response.json()
         else:
@@ -51,6 +52,7 @@ def verify_license(image_path):
 
 # Streamlit UI
 st.title("🚗 Auto VIN & Driver's License Verification 🆔")
+st.write("Enter the VIN number or upload a driver's license to verify details.")
 
 # Input for VIN Number
 vin_number = st.text_input("Enter VIN Number:")
@@ -61,42 +63,63 @@ uploaded_file = st.file_uploader("Upload Driver's License (JPG/PNG)", type=["jpg
 if st.button("Verify Details"):
     if not vin_number and not uploaded_file:
         st.error("Please enter a VIN number or upload a Driver's License.")
-    
+
     # Process VIN Verification
     if vin_number:
         st.subheader("🔍 VIN Details:")
         vin_details = verify_vin(vin_number)
         if vin_details:
-            st.json(vin_details)
+            vin_df = pd.DataFrame(vin_details.items(), columns=["Attribute", "Value"])
+            st.table(vin_df)
         else:
             st.error("❌ Invalid VIN number or no details found.")
-    
+
     # Process Driver's License Verification
     if uploaded_file:
         st.subheader("🆔 Driver's License Verification:")
         file_path = f"temp_{uploaded_file.name}"
         with open(file_path, "wb") as f:
             f.write(uploaded_file.read())
-        
+
         license_data = verify_license(file_path)
-        
+
         if "error" in license_data:
             st.error(license_data["error"])
         else:
-            st.json(license_data)
-            
+            # Extract relevant details
+            full_name = license_data["data"].get("fullName", [{"value": "N/A"}])[0]["value"]
+            license_number = license_data["data"].get("documentNumber", [{"value": "N/A"}])[0]["value"]
+            dob = license_data["data"].get("dob", [{"value": "N/A"}])[0]["value"]
+            expiry = license_data["data"].get("expiry", [{"value": "N/A"}])[0]["value"]
+            address = license_data["data"].get("address1", [{"value": "N/A"}])[0]["value"]
+            decision = license_data.get("decision", "Unknown")
+
+            # Show license details in table format
+            license_df = pd.DataFrame([
+                ["Full Name", full_name],
+                ["License Number", license_number],
+                ["Date of Birth", dob],
+                ["Expiry Date", expiry],
+                ["Address", address],
+                ["Verification Status", decision.capitalize()],
+            ], columns=["Attribute", "Value"])
+            st.table(license_df)
+
+            # Warnings section
             if "warning" in license_data:
+                warnings_data = [{"Description": w["description"], "Confidence": w["confidence"], "Decision": w["decision"]} for w in license_data["warning"]]
+                warnings_df = pd.DataFrame(warnings_data)
                 st.warning("⚠️ Warnings:")
-                for warning in license_data["warning"]:
-                    st.write(f"🔸 {warning['description']} (Confidence: {warning['confidence']}, Decision: {warning['decision']})")
-            
-            if license_data.get("decision") == "reject":
+                st.table(warnings_df)
+
+            # Decision Output
+            if decision == "reject":
                 st.error("❌ License verification was REJECTED.")
-            elif license_data.get("decision") == "review":
+            elif decision == "review":
                 st.warning("🔍 License requires MANUAL REVIEW.")
             else:
                 st.success("✅ License Verification PASSED!")
-    
+
     # Cleanup uploaded file
     if os.path.exists(file_path):
         os.remove(file_path)
